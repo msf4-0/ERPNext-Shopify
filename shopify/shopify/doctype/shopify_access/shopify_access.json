@@ -99,9 +99,15 @@
    "fieldtype": "Link",
    "label": "Bank Account",
    "options": "Account",
-   "reqd": 0
+   "reqd": 1
   },
-
+  {
+   "fieldname": "shopify_url",
+   "fieldtype": "Data",
+   "label": "Shopify API URL",
+   "reqd": 1,
+   "unique": 1
+  },
   {
    "fieldname": "shopify_account",
    "fieldtype": "Select",
