@@ -98,16 +98,8 @@
    "fieldname": "bank_account",
    "fieldtype": "Link",
    "label": "Bank Account",
-   "read_only": 1,
+   "options": "Account",
    "reqd": 1
-  },
-  {
-   "fieldname": "shopify_url",
-   "fieldtype": "Data",
-   "label": "Shopify API URL",
-   "read_only": 0,
-   "reqd": 1,
-   "unique": 1
   },
   {
    "fieldname": "shopify_account",
