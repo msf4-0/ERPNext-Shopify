@@ -107,7 +107,7 @@
    "fieldtype": "Link",
    "label": "Bank Account",
    "options": "Account",
-   "reqd": 1
+   "reqd": 0
   }
  ],
  "modified": "2023-10-24 16:12:08.305072",
