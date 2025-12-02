@@ -99,8 +99,9 @@
    "fieldtype": "Link",
    "label": "Bank Account",
    "options": "Account",
-   "reqd": 1
+   "reqd": 0
   },
+
   {
    "fieldname": "shopify_account",
    "fieldtype": "Select",
