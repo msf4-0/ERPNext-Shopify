@@ -11,6 +11,12 @@ app_color = "grey"
 app_email = "SHRDC@gmail.com"
 app_license = "MIT"
 
+doc_events = {
+    "Item": {
+        "after_insert": "shopify.create_product.after_insert"
+    }
+}
+
 
 
 # Includes in <head>
@@ -93,33 +99,7 @@ app_license = "MIT"
 # Document Events
 # ---------------
 # Wire ERPNext DocType events to Shopify sync handlers
-doc_events = {
-    "Item": {
-        "on_submit": [
-            "shopify.create_product.on_submit",
-            "shopify.update_product.on_submit",
-            "shopify.update_product_price.on_submit",
-            "shopify.delete_product.on_submit",
-            "shopify.retrieve_product.on_submit",
-        ],
-    },
-    "Customer": {
-        "on_submit": [
-            "shopify.create_customer.on_submit",
-            "shopify.update_customer.on_submit",
-            "shopify.delete_customer.on_submit",
-            "shopify.retrieve_customer.on_submit",
-        ],
-    },
-    "Sales Order": {
-        "on_submit": [
-            "shopify.update_order.on_submit",
-            "shopify.delete_order.on_submit",
-            "shopify.cancel_order.on_submit",
-            "shopify.retrieve_order.on_submit",
-        ],
-    },
-}
+
 
 scheduler_events = {
 	#"all": [
