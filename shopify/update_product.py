@@ -33,26 +33,34 @@ def update_shopify_product(productID, itemCode, itemName, itemStatus, itemDescri
     if response.status_code == 200:
         frappe.msgprint(f"Product '{itemName}' updated in Shopify.")
 
-        # Upload image
-        image_upload_endpoint = f"{shopify_url}products/{productID}.json"
-        
+    else:
+        frappe.log_error(title="Shopify Product Update Failed", message=response.text)
+        frappe.msgprint(f"Failed to update product '{itemName}' in Shopify. Status: {response.status_code}")
+
+    # Upload image
+    if imagePath:
+        image_endpoint = f"{shopify_url}products/{productID}/images.json"
+
         image_payload = {
-            "product": {
-                "id": productID,
-                "image": [{"src": imagePath}]
+            "image": {
+                "src": imagePath
             }
         }
-        
-        image_payload_json = json.dumps(image_payload)
-        image_response = requests.post(image_upload_endpoint, data=image_payload_json, headers=headers)
+
+        image_response = requests.post(
+            image_endpoint,
+            json=image_payload,
+            headers=headers
+        )
 
         if image_response.status_code == 201:
             frappe.msgprint(f"Image updated for product '{itemName}' in Shopify.")
         else:
-            frappe.log_error(title="Shopify Image Upload Failed", message=image_response.text)
-    else:
-        frappe.log_error(title="Shopify Product Update Failed", message=response.text)
-        frappe.msgprint(f"Failed to update product '{itemName}' in Shopify. Status: {response.status_code}")
+            frappe.log_error(
+                title="Shopify Image Upload Failed",
+                message=image_response.text
+            )
+
 
 
 # Attach the custom function to the 'Item' doctype's on_submit event
