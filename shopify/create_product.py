@@ -1,9 +1,10 @@
 import requests
 import frappe
 import json
+from requests.auth import HTTPBasicAuth
 
 @frappe.whitelist()
-def create_shopify_product(itemCode, itemName, itemStatus, itemDescription, price, unitWeight, inventoryNum, shopify_url, imagePath):
+def create_shopify_product(itemCode, itemName, itemStatus, itemDescription, price, unitWeight, inventoryNum, imagePath,shopify_url, api_key, secret_key):
     # Construct the API payload without the image
     payload = {
         "product": {
@@ -25,27 +26,26 @@ def create_shopify_product(itemCode, itemName, itemStatus, itemDescription, pric
         }
     }
 
-    payload_json = json.dumps(payload)
-
-    endpoint = 'products.json'
-    # Shopify API headers and endpoint
-    headers = {
-        "Content-Type": "application/json",
-    }
-    final_url = shopify_url + endpoint
-
-    # Send the POST request to create the product without the image
-    response = requests.post(final_url, data=payload_json, headers=headers)
+    
+    headers = {"Content-Type": "application/json"}
+    # Create product
+    response = requests.post(
+        shopify_url + "products.json",
+        data=json.dumps(payload),
+        headers=headers,
+        auth=HTTPBasicAuth(api_key, secret_key)
+    )
 
     if response.status_code == 201:
         frappe.msgprint(f"Product '{itemName}' created in Shopify.")
+        
 
         product_data = response.json()
         product_id = product_data["product"]["id"]
         
         # Update the product to add the image
-        image_upload_endpoint = f'products/{product_id}.json'
-        image_upload_url = shopify_url + image_upload_endpoint
+        image_upload_endpoint = f"{shopify_url}products/{product_id}.json"
+        
         image_payload = {
             "product": {
                 "id": product_id,
@@ -54,7 +54,7 @@ def create_shopify_product(itemCode, itemName, itemStatus, itemDescription, pric
         }
         
         image_payload_json = json.dumps(image_payload)
-        image_response = requests.put(image_upload_url, data=image_payload_json, headers=headers)
+        image_response = requests.put(image_upload_endpoint, data=image_payload_json, headers=headers, auth=HTTPBasicAuth(api_key, secret_key))
 
         if image_response.status_code == 200:
             frappe.msgprint(f"Image added to the product '{itemName}' in Shopify.")
@@ -63,10 +63,46 @@ def create_shopify_product(itemCode, itemName, itemStatus, itemDescription, pric
 
     else:
         frappe.msgprint(f"Failed to create the product in Shopify. Error: {response.content}")
+    
+    return product_id
 
 # Attach the custom function to the 'Item' doctype's on_submit event
-def on_submit(doc, method):
-    create_shopify_product(doc.item_code, doc.item_name, doc.prod_status, doc.description, doc.standard_rate, doc.weight_per_unit, doc.opening_stock, doc.api_link, doc.image)
+def after_insert(doc, method):
+    # Fetch Shopify Access credentials
+    shopify_doc = frappe.get_doc(
+        "Shopify Access",
+        frappe.get_value("Shopify Access", {}, "name")  # first Shopify Access record
+    )
 
-# Ensure the on_submit function is triggered when an 'Item' document is submitted
-frappe.get_doc('DocType', 'Item').on_submit = on_submit
+    if doc.shopify_product_id:
+        return
+
+    shopify_url = shopify_doc.shopify_url
+    api_key = shopify_doc.api_key
+    secret_key = shopify_doc.access_token
+
+    # Determine Shopify status
+    if doc.disabled:
+        status = "archived"
+    elif not doc.show_in_website:
+        status = "draft"
+    else:
+        status = "active"
+
+    # Push product
+    product_id = create_shopify_product(
+        doc.item_code,
+        doc.item_name,
+        status,
+        doc.description,
+        doc.standard_rate,
+        doc.weight_per_unit,
+        doc.opening_stock,
+        doc.image,
+        shopify_url,
+        api_key,
+        secret_key
+    )
+    if product_id:
+        doc.db_set("shopify_product_id", str(product_id))
+

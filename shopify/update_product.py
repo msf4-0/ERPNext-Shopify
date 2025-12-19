@@ -1,72 +1,75 @@
 import requests
 import frappe
 import json
+from requests.auth import HTTPBasicAuth
 
 @frappe.whitelist()
-def update_shopify_product(productID, itemCode, itemName, itemStatus, itemDescription, price, unitWeight, inventoryNum, shopify_url, imagePath):
-    print(f"Received arguments - productID: {productID}, itemName: {itemName}, itemStatus: {itemStatus}, itemDescription: {itemDescription}, price: {price}, unitWeight: {unitWeight}, inventoryNum: {inventoryNum}, shopify_url: {shopify_url}")
+def update_shopify_product(productID, itemCode, itemName, itemStatus, itemDescription, price, unitWeight, inventoryNum, shopify_url, access_token, imagePath):
+    headers = {
+        "X-Shopify-Access-Token": access_token,
+        "Content-Type": "application/json"
+    }
 
-    # Construct the API payload
     payload = {
         "product": {
             "title": itemName,
             "body_html": itemDescription,
             "vendor": "TD Furniture",
             "status": itemStatus,
-            "variants": [
-                {
-                    "price": price,
-                    "sku": itemCode,
-                    "weight": unitWeight,
-                    "weight_unit": "kg",
-                    "inventory_management": "shopify",
-                    "inventory_quantity": inventoryNum,
-                }
-            ]
+            "variants": [{
+                "sku": itemCode,
+                "price": price,
+                "weight": unitWeight,
+                "weight_unit": "kg",
+                "inventory_management": "shopify",
+                "inventory_quantity": inventoryNum
+            }]
         }
     }
 
-    payload_json = json.dumps(payload)
-
-    endpoint = 'products/' + str(productID) + '.json'
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    final_url = shopify_url + endpoint
-
-    # Send the PUT request to create the product
-    response = requests.put(final_url, data=payload_json, headers=headers)
-        
+    # Update product
+    response = requests.put(f"{shopify_url}products/{productID}.json", json=payload, headers=headers)
+    
     if response.status_code == 200:
         frappe.msgprint(f"Product '{itemName}' updated in Shopify.")
 
-        product_data = response.json()
-        product_id = product_data["product"]["id"]
+        # Upload image
+        image_upload_endpoint = f"{shopify_url}products/{productID}.json"
         
-        # Update the product to add the image
-        image_upload_endpoint = f'products/{product_id}.json'
-        image_upload_url = shopify_url + image_upload_endpoint
         image_payload = {
             "product": {
-                "id": product_id,
-                "images": [{"src": imagePath}]
+                "id": productID,
+                "image": [{"src": imagePath}]
             }
         }
         
         image_payload_json = json.dumps(image_payload)
-        image_response = requests.put(image_upload_url, data=image_payload_json, headers=headers)
+        image_response = requests.post(image_upload_endpoint, data=image_payload_json, headers=headers)
 
-        if image_response.status_code == 200:
-            frappe.msgprint(f"Image updated with product '{itemName}' in Shopify.")
+        if image_response.status_code == 201:
+            frappe.msgprint(f"Image updated for product '{itemName}' in Shopify.")
         else:
-            frappe.msgprint(f"Failed to update the image with the product in Shopify. Error: {image_response.content}")
-
+            frappe.log_error(title="Shopify Image Upload Failed", message=image_response.text)
     else:
-        frappe.msgprint(f"Failed to update the product in Shopify. Error: {response.content}")
+        frappe.log_error(title="Shopify Product Update Failed", message=response.text)
+        frappe.msgprint(f"Failed to update product '{itemName}' in Shopify. Status: {response.status_code}")
+
 
 # Attach the custom function to the 'Item' doctype's on_submit event
 def on_submit(doc, method):
-    update_shopify_product(doc.product_id, doc.item_code, doc.item_name, doc.prod_status, doc.description, doc.standard_rate, doc.weight_per_unit, doc.opening_stock, doc.api_link, doc.image)
+    shopify_doc = frappe.get_doc(
+        "Shopify Access",
+        frappe.get_value("Shopify Access", {}, "name")  # first Shopify Access record
+    )
+    
+    # Determine Shopify status
+    if doc.disabled:
+        status = "archived"
+    elif not doc.show_in_website:
+        status = "draft"
+    else:
+        status = "active"
 
-# Ensure the on_submit function is triggered when an 'Item' document is submitted
-frappe.get_doc('DocType', 'Item').on_submit = on_submit
+    update_shopify_product(doc.shopify_product_id, doc.item_code, doc.item_name, status, doc.description, doc.standard_rate, doc.weight_per_unit, doc.opening_stock, shopify_doc.shopify_url, shopify_doc.access_token, doc.image)
+
+

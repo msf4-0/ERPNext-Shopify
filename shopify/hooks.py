@@ -11,12 +11,6 @@ app_color = "grey"
 app_email = "SHRDC@gmail.com"
 app_license = "MIT"
 
-doc_events = {
-    "Item": {
-        "after_insert": "shopify.create_product.after_insert"
-    }
-}
-
 
 
 # Includes in <head>
@@ -100,6 +94,14 @@ doc_events = {
 # ---------------
 # Wire ERPNext DocType events to Shopify sync handlers
 
+doc_events = {
+    "Item": {
+        "after_insert": "shopify.create_product.after_insert",
+        "on_trash": "shopify.delete_product.on_submit",
+        "on_update": "shopify.update_product.on_submit"
+        
+    }
+}
 
 scheduler_events = {
 	#"all": [
@@ -110,7 +112,7 @@ scheduler_events = {
 	#],
 	"hourly": [
 		"shopify.automated_orders.execute"
-        # "shopify.retrieve_customer.retrieve_shopify_customers"
+        "shopify.retrieve_product.retrieve_shopify_products"
 	]
 	#"weekly": [
 	#	"shopify.tasks.weekly"
