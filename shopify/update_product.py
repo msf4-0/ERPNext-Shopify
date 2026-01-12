@@ -65,6 +65,10 @@ def update_shopify_product(productID, itemCode, itemName, itemStatus, itemDescri
 
 # Attach the custom function to the 'Item' doctype's on_submit event
 def on_submit(doc, method):
+
+    if doc.flags.in_insert:
+        return
+    
     shopify_doc = frappe.get_doc(
         "Shopify Access",
         frappe.get_value("Shopify Access", {}, "name")  # first Shopify Access record

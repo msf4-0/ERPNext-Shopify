@@ -38,29 +38,10 @@ def create_shopify_product(itemCode, itemName, itemStatus, itemDescription, pric
 
     if response.status_code == 201:
         frappe.msgprint(f"Product '{itemName}' created in Shopify.")
-        
-
+    
         product_data = response.json()
         product_id = product_data["product"]["id"]
         
-        # Update the product to add the image
-        image_upload_endpoint = f"{shopify_url}products/{product_id}.json"
-        
-        image_payload = {
-            "product": {
-                "id": product_id,
-                "images": [{"src": imagePath}]
-            }
-        }
-        
-        image_payload_json = json.dumps(image_payload)
-        image_response = requests.put(image_upload_endpoint, data=image_payload_json, headers=headers, auth=HTTPBasicAuth(api_key, secret_key))
-
-        if image_response.status_code == 200:
-            frappe.msgprint(f"Image added to the product '{itemName}' in Shopify.")
-        else:
-            frappe.msgprint(f"Failed to add the image to the product in Shopify. Error: {image_response.content}")
-
     else:
         frappe.msgprint(f"Failed to create the product in Shopify. Error: {response.content}")
     
