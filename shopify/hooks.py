@@ -125,7 +125,6 @@ scheduler_events = {
 
 	"all": [
         "shopify.automated_orders.execute",
-        "shopify.retrieve_order.scheduled_retrieve_shopify_orders",
         "shopify.retrieve_customer.on_submit",
         "shopify.retrieve_order.scheduled_retrieve_shopify_orders",
         "shopify.retrieve_product.on_submit"
@@ -139,6 +138,20 @@ scheduler_events = {
 	#	"shopify.tasks.monthly"
 	#]
 }
+
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": [
+            ["name", "in", [
+                "Item-shopify_product_id",
+                "Sales Order-shopify_order_id",
+                "Customer-shopify_customer_id"
+            ]]
+        ]
+    }
+]
+
 
 # Testing
 # -------
